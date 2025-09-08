@@ -1,72 +1,46 @@
-#include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-
-const char* ssid = "HUAWEI-nGQ2";
-const char* password = "y3mqwUhn";
-
-#define PULSE_PIN 34 // Signal Pulse 34 D34
-int Signal;
-int lastSignal = 0;
+const int PULSE_PIN = 34;
+int signalValue = 0;
+unsigned long lastBeat = 0;
+int BPM = 0;
 bool beatDetected = false;
-
-long lastBeat = 0;
-int BPM;
-
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-
-void notifyClients(int bpm) {
-  String msg = "{\"bpm\":" + String(bpm) + "}";
-  ws.textAll(msg);
-}
+unsigned long lastValidBeat = 0;
 
 void setup() {
   Serial.begin(115200);
-  analogReadResolution(12);
-
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi connected");
-  Serial.println(WiFi.localIP());
-
-  ws.onEvent([](AsyncWebSocket * server, AsyncWebSocketClient * client,
-                 AwsEventType type, void * arg, uint8_t *data, size_t len) {
-    if (type == WS_EVT_CONNECT) {
-      Serial.println("Web client connected");
-    }
-  });
-
-  server.addHandler(&ws);
-  server.begin();
+  delay(1000);
 }
 
 void loop() {
-  Signal = analogRead(PULSE_PIN);
+  signalValue = analogRead(PULSE_PIN);
+  unsigned long currentTime = millis();
 
-  //  rising up pulse
-  if (lastSignal < 2000 && Signal >= 2000 && !beatDetected) {
-    beatDetected = true;
-    long now = millis();
-    long diff = now - lastBeat;
-    lastBeat = now;
+  if (!beatDetected && signalValue > 2000) {
+    if (currentTime - lastBeat > 400) {
+      BPM = 60000 / (currentTime - lastBeat);
+      lastBeat = currentTime;
+      lastValidBeat = currentTime;
+      Serial.print("BPM: ");
+      Serial.print(BPM);
 
-    // valid  range 30–200 BPM
-    if (diff > 300 && diff < 2000) { 
-      BPM = 60000 / diff;
-      Serial.println("BPM: " + String(BPM));
-      notifyClients(BPM);
+      if (BPM < 60) {
+        Serial.println(" → Low");
+      } else if (BPM > 100) {
+        Serial.println(" → High");
+      } else {
+        Serial.println(" → Normal");
+      }
     }
+    beatDetected = true;
   }
 
-  // Falling Pulse
-  if (lastSignal > 2000 && Signal <= 2000) {
+  if (beatDetected && signalValue < 1500) {
     beatDetected = false;
   }
 
-  lastSignal = Signal;
-  delay(10);
+  if (currentTime - lastValidBeat > 5000) {
+    Serial.println("No finger detected");
+    lastValidBeat = currentTime;
+  }
+
+  delay(20);
 }
