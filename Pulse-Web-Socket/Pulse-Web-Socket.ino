@@ -22,7 +22,7 @@ void notifyClients(int bpm) {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   analogReadResolution(12);
 
   WiFi.begin(ssid, password);

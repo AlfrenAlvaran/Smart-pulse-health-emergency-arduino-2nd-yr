@@ -13,7 +13,7 @@ HardwareSerial sim800(2); // RX=16, TX=17
 int BPM = 0;
 unsigned long lastBeat = 0;
 bool dangerSent = false;
-String phoneNumber = "+639993112900";
+String phoneNumber = "+639756037560";
 
 unsigned long lastDisplay = 0;
 const unsigned long displayInterval = 1000;
@@ -45,8 +45,8 @@ void setup() {
   particleSensor.setPulseAmplitudeRed(0x0A);
   particleSensor.setPulseAmplitudeGreen(0);
 
-  sim800.begin(115200, SERIAL_8N1, 16, 17); // RX=16, TX=17
-  delay(5000);
+  sim800.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17
+  delay(8000);
 
   sendCommand("AT");
   sendCommand("AT+CMGF=1");
